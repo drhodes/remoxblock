@@ -1,0 +1,10 @@
+
+* 5.1.1. The Default XBlock Python File
+https://edx.readthedocs.io/projects/xblock-tutorial/en/latest/customize/custom-python.html
+
+from xblock.fragment import Fragment
+
+should be
+
+from web_fragments.fragment import Fragment
+

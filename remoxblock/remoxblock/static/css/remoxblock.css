@@ -1,0 +1,9 @@
+/* CSS for RemoXBlock */
+
+.remoxblock_block .count {
+    font-weight: bold;
+}
+
+.remoxblock_block p {
+    cursor: pointer;
+}
