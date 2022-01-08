@@ -1,6 +1,6 @@
 """
-This xblock is for fetching remote student answers and grading
-them and grading them locally at edx
+This xblock is for fetching remote student answers grading them
+locally at edx.
 """
 
 import pkg_resources
@@ -12,34 +12,21 @@ from django.http import HttpResponse
 import requests
 import logging
 
-#https://github.com/openedx/xblock-utils
+# https://github.com/openedx/xblock-utils
 from xblockutils.studio_editable import StudioEditableXBlockMixin
+from xblock.scorable import ScorableXBlockMixin
 
 log = logging.getLogger(__name__)
 
+# https://openedx.atlassian.net/wiki/spaces/AC/pages/161400730/Open+edX+Runtime+XBlock+API
+
+@XBlock.needs('settings')
 @XBlock.wants('user')
 @XBlock.needs("i18n")
-class RemoXBlock(StudioEditableXBlockMixin, XBlock):
+class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
     """
     Grade Remote Json
     """
-    # # Fields are defined on the class.  You can access them in your code as
-    # # self.<fieldname>.
-
-    # # store the number of times users up-vote the XBlock. The value
-    # # applies to the XBlock and all users collectively.
-    upvotes = Integer(help="number of upvotes", default=0, scope=Scope.user_state_summary)
-
-    # # store the number of times users down-vote the XBlock. The value
-    # # applies to the XBlock and all users collectively.
-    downvotes = Integer(help="number of downvotes", default=0, scope=Scope.user_state_summary)
-
-    # # to record whether or not the user has voted. The value applies
-    # # to the XBlock and each user individually.
-    voted = Boolean(help="has the user voted yet?", default=False, scope=Scope.user_state)
-
-    # The above fields need to be removed.
-    #################
     
     consumer = String(display_name="Consumer Id", help="consumer id",
                       default="", scope=Scope.settings)
@@ -88,14 +75,55 @@ class RemoXBlock(StudioEditableXBlockMixin, XBlock):
 
         self.count += 1
         return {"count": self.count}
+
+    def max_score(self): return 1        
+
+    def do_grade(self, answers):
+        # stub code, just getting something working.
+        max_grade = 1
+        got_grade = .5
+        #self.set_score(got_grade)
+        self.runtime.publish(self, "grade", {
+            "value": got_grade,
+            "max_value": max_grade,
+        })
+
+
+    # ------------------------------------------------------------------
+    # implementing ScoreableXBlockMixin, no idea what state is needed
+    # nor where.
+
+    # interface ScorableXBlockMixin
+    #     get_score(self)
+    #     set_score(self, score)
+    #     calculate_score(self, score)
+    #     get_score(self)
+    
+    def has_submitted_answer(self):
+        # ? how to determine this?
+        return True
+    
+    def get_score(self):
+        # just a stub for now.
+        return Score(raw_earned=.5, raw_possible=1)
+    
+    def set_score(self, score):
+        # no idea how this is supposed to be implemented
+        pass
+    
+    def calculate_score(self, score):
+        # no idea how this is supposed to be implemented
+        return Score(raw_earned=.5, raw_possible=1)
+
+    ## end of ScorableXBlockMixin
+
     
     @XBlock.json_handler
-    def load_hub_data(self, data, suffix=''):       
+    def load_hub_data(self, data, suffix=''):        
+        log.error("testing error logs!")
         # "{'q1': 2, 'q2': 4}"
-        
-        user_service = self.runtime.service(self, 'user')
-        xb_user = user_service.get_current_user()
-        user_id = xb_user.opt_attrs['edx-platform.user_id']
+
+        anon_id = self.runtime.anonymous_student_id
         
         url = self.host
         req = requests.Request(url=url,
@@ -114,13 +142,13 @@ class RemoXBlock(StudioEditableXBlockMixin, XBlock):
         # TODO more error handling with better messages.
         
         rsp = sess.send(req.prepare())
-
-        #!! TODO remove this like, it is overwriting user_id for testing purposes 🐬
-        # user_id from edx will be different.
-        user_id = "35dd7e9124c8847ec5-030ef"
-
+        #self.do_grade("todo: json.loads that rsp.result")
         
-        return {"result": rsp.text, "user_id": user_id}
+        #!! TODO remove this, it is overwriting user_id for testing purposes 🐬
+        # user_id from edx will be different.
+        fake_user_id = "35dd7e9124c8847ec5-030ef"
+
+        return {"result": rsp.text, "user_id": fake_user_id, "location":anon_id}
     
     # TO-DO: change this to create the scenarios you'd like to see in the
     # workbench while developing your XBlock.

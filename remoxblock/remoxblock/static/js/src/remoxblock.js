@@ -11,6 +11,7 @@ function RemoXBlock(runtime, element) {
         console.log(["updating data", result]);
         $('#user-lab-data', element).text(result.result);
         $('#user-id', element).text(result.user_id);
+        $('#location', element).text(result.location);
     }
     
     var handlerLoadHubData = runtime.handlerUrl(element, 'load_hub_data');
