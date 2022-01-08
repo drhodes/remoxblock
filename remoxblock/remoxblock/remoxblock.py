@@ -10,9 +10,12 @@ from xblock.fields import Integer, Boolean, String, Scope
 from web_fragments.fragment import Fragment
 from django.http import HttpResponse
 import requests
+import logging
 
 #https://github.com/openedx/xblock-utils
 from xblockutils.studio_editable import StudioEditableXBlockMixin
+
+log = logging.getLogger(__name__)
 
 @XBlock.wants('user')
 @XBlock.needs("i18n")
