@@ -7,19 +7,23 @@ import pkg_resources
 import requests
 import logging
 import hashlib
+import json
+from collections import namedtuple
 
 from xblock.core import XBlock
 from xblock.fields import Integer, Boolean, String, Scope
 from web_fragments.fragment import Fragment
+from mako.template import Template
 from django.http import HttpResponse
-
-# https://github.com/openedx/xblock-utils
 from xblockutils.studio_editable import StudioEditableXBlockMixin
 from xblock.scorable import ScorableXBlockMixin, Score
+
+import remoxblock.util as util
 
 log = logging.getLogger(__name__)
 
 # https://openedx.atlassian.net/wiki/spaces/AC/pages/161400730/Open+edX+Runtime+XBlock+API
+# https://github.com/openedx/xblock-utils
 
 @XBlock.needs('settings')
 @XBlock.wants('user')
@@ -44,7 +48,8 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
                          help="name-of-git-repo/path/to/notebook-name.json",
                          default="",
                          scope=Scope.settings)
-    
+
+    #todo change this field to staff_answers
     answers = String(display_name="Answers",
                      help="paste json blob here, todo: better documentation needed",
                      default="", scope=Scope.settings)
@@ -72,21 +77,8 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         frag.add_css(self.resource_string("static/css/remoxblock.css"))
         frag.add_javascript(self.resource_string("static/js/src/remoxblock.js"))
         frag.initialize_js('RemoXBlock')
-        return frag
+        return frag    
     
-    # TO-DO: change this handler to perform your own actions.  You may need more
-    # than one handler, or you may not need any handlers at all.
-    @XBlock.json_handler
-    def increment_count(self, data, suffix=''):
-        """
-        An example handler, which increments the data.
-        """
-        # Just to show data coming in...
-        assert data['hello'] == 'world'
-
-        self.count += 1
-        return {"count": self.count}
-
     def max_score(self): return 1        
 
     def do_grade(self, answers):
@@ -98,6 +90,76 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             "value": got_grade,
             "max_value": max_grade,
         })
+
+    def check_answer(self, key, val):
+        # TODO: work tolerance into this
+
+        # TODO, this may throw an exception, need to handle it.
+        normalized_json = self.answers.replace("'", '"')        
+        staff_answers = json.loads(normalized_json)
+
+        student_answer = val
+        staff_answer = staff_answers[key]
+        return student_answer == staff_answer
+
+
+    def render_answers(self, answers):
+        template_html = self.resource_string("static/html/answers.html")
+        Row = namedtuple("Row", ['key', 'val', 'is_right_answer'])
+
+        rows = []
+        for key, val in answers:
+            ans = "✔️" if self.check_answer(key, val) else "✗"
+            rows.append(Row(key, val, ans))
+        return Template(template_html).render(rows=rows)
+
+    
+    def text_score(self, answer_pairs):
+        num_right = 0        
+        for (key, val) in answer_pairs:
+            if self.check_answer(key, val):
+                num_right += 1
+
+        # TODO use a template for this.
+        return f"score {num_right}/{len(answer_pairs)}"
+        
+    @XBlock.json_handler
+    def load_hub_data(self, data, suffix=''):        
+        anon_id = util.generate_jupyterhub_userid(self.runtime.anonymous_student_id)
+        url = self.host
+        
+        req = requests.Request(
+            url=url,
+            method="POST",
+            data={
+                "userid": anon_id,
+                "answerpath": self.answer_path,
+            },                           
+            auth=(self.consumer, self.secret)
+        )
+        
+        sess = requests.Session()
+
+        # rsp should contain the answers from .json file.
+        # by comparing the key/vals between self.answers and rsp.results
+        rsp = sess.send(req.prepare())
+        
+        # TODO more error handling with better messages.
+        # self.do_grade("todo: json.loads that rsp.text")
+        
+        self._publish_grade(Score(.7, 1))
+
+        answer_pairs = json.loads(rsp.text).items()
+        html = self.render_answers(answer_pairs)
+        score = self.text_score(answer_pairs)
+        
+        return {
+            "result": rsp.text,
+            "user_id": anon_id,
+            "score": score,
+            "html":html,
+            "ok": True,
+        }
 
     # ------------------------------------------------------------------
     # implementing ScoreableXBlockMixin, no idea what state is needed
@@ -126,69 +188,3 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         return Score(raw_earned=.5, raw_possible=1)
 
     ## end of ScorableXBlockMixin
-
-
-    # NOTE: The kubernetes jupyterhub may not truncate the user id
-    # like this.
-    def generate_jupyterhub_userid(self):
-        anon_id = "jupyter-" + self.runtime.anonymous_student_id
-        
-        # jupyterhub truncates this and appends a five character hash.
-        # https://tljh.jupyter.org/en/latest/topic/security.html
-        #
-        # where is this done?
-        # https://gist.github.com/martinclaus/c6f229de82769b0b4ae6c7bf3b232106
-        # https://github.com/jupyterhub/the-littlest-jupyterhub/blob/main/tljh/normalize.py
-        
-        userhash = hashlib.sha256(anon_id.encode("utf-8")).hexdigest()
-        return f"{anon_id[:26]}-{userhash[:5]}"
-    
-    @XBlock.json_handler
-    def load_hub_data(self, data, suffix=''):        
-        anon_id = self.generate_jupyterhub_userid()
-        url = self.host
-        
-        req = requests.Request(
-            url=url,
-            method="POST",
-            data={
-                "userid": anon_id,
-                "labname": self.answer_path,
-            },                           
-            auth=(self.consumer, self.secret)
-        )
-        
-        sess = requests.Session()
-
-        # rsp should contain the answers from .json file.
-        # by comparing the key/vals between self.answers and rsp.results
-        rsp = sess.send(req.prepare())
-        
-        # TODO more error handling with better messages.
-        # self.do_grade("todo: json.loads that rsp.result")
-        self._publish_grade(Score(.7, 1))
-        
-        #!! TODO remove this, it is overwriting user_id for testing purposes 🐬
-        # user_id from edx will be different.
-        
-        return {"result": rsp.text, "user_id": anon_id, "location":str(self.answer_path)}
-    
-    # TO-DO: change this to create the scenarios you'd like to see in the
-    # workbench while developing your XBlock.
-    @staticmethod
-    def workbench_scenarios():
-        """A canned scenario for display in the workbench."""
-        return [
-            ("RemoXBlock",
-             """<remoxblock/>
-             """),
-            ("Multiple RemoXBlock",
-             """<vertical_demo>
-                <remoxblock/>
-                <remoxblock/>
-                </vertical_demo>
-             """),
-        ]
-
-
-

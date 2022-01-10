@@ -1,0 +1,20 @@
+
+<table>
+  <tr>
+    <th>var</th>
+    <th>ans</th>
+    <th></th>
+  </tr>
+  % for row in rows:
+  ${makerow(row)}
+  % endfor
+</table>
+
+<%def name="makerow(row)">
+  <tr>
+      <td> ${row.key}</td>
+      <td> ${row.val} </td>
+      <td> ${row.is_right_answer} </td>
+  </tr>
+</%def>
+
