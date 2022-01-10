@@ -17,11 +17,3 @@ containers by running
 
 `$ make deploy-local-docker`
 
----- 
-
-Note: The hex id used by lti_consumer/jhub is located in xblock runtime:
-
-```python
-self.runtime.anonymous_student_id
-```
-
