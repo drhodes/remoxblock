@@ -4,17 +4,18 @@ locally at edx.
 """
 
 import pkg_resources
+import requests
+import logging
+import hashlib
 
 from xblock.core import XBlock
 from xblock.fields import Integer, Boolean, String, Scope
 from web_fragments.fragment import Fragment
 from django.http import HttpResponse
-import requests
-import logging
 
 # https://github.com/openedx/xblock-utils
 from xblockutils.studio_editable import StudioEditableXBlockMixin
-from xblock.scorable import ScorableXBlockMixin
+from xblock.scorable import ScorableXBlockMixin, Score
 
 log = logging.getLogger(__name__)
 
@@ -39,11 +40,21 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
                   help="The hostname of the json file server",
                   default="", scope=Scope.settings)
 
+    answer_path = String(display_name="Answer Path",
+                         help="name-of-git-repo/path/to/notebook-name.json",
+                         default="",
+                         scope=Scope.settings)
+    
     answers = String(display_name="Answers",
                      help="paste json blob here, todo: better documentation needed",
                      default="", scope=Scope.settings)
     
-    editable_fields = ('display_name', 'host', 'consumer', 'secret', 'answers')
+    editable_fields = ('display_name',
+                       'host',
+                       'answer_path',
+                       'consumer',
+                       'secret',
+                       'answers')
     
     def resource_string(self, path):
         """Handy helper for getting resources from our kit."""
@@ -88,7 +99,6 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             "max_value": max_grade,
         })
 
-
     # ------------------------------------------------------------------
     # implementing ScoreableXBlockMixin, no idea what state is needed
     # nor where.
@@ -117,38 +127,51 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
 
     ## end of ScorableXBlockMixin
 
+
+    # NOTE: The kubernetes jupyterhub may not truncate the user id
+    # like this.
+    def generate_jupyterhub_userid(self):
+        anon_id = "jupyter-" + self.runtime.anonymous_student_id
+        
+        # jupyterhub truncates this and appends a five character hash.
+        # https://tljh.jupyter.org/en/latest/topic/security.html
+        #
+        # where is this done?
+        # https://gist.github.com/martinclaus/c6f229de82769b0b4ae6c7bf3b232106
+        # https://github.com/jupyterhub/the-littlest-jupyterhub/blob/main/tljh/normalize.py
+        
+        userhash = hashlib.sha256(anon_id.encode("utf-8")).hexdigest()
+        return f"{anon_id[:26]}-{userhash[:5]}"
     
     @XBlock.json_handler
     def load_hub_data(self, data, suffix=''):        
-        log.error("testing error logs!")
-        # "{'q1': 2, 'q2': 4}"
-
-        anon_id = self.runtime.anonymous_student_id
-        
+        anon_id = self.generate_jupyterhub_userid()
         url = self.host
-        req = requests.Request(url=url,
-                               method="POST",
-                               data={
-                                   "userid":"35dd7e9124c8847ec5-030ef",
-                                   "labname":"jupyter-answer-magic/test/test_autograde1.json",
-                               },                           
-                               auth=(self.consumer, self.secret))
+        
+        req = requests.Request(
+            url=url,
+            method="POST",
+            data={
+                "userid": anon_id,
+                "labname": self.answer_path,
+            },                           
+            auth=(self.consumer, self.secret)
+        )
+        
         sess = requests.Session()
 
-        # rsp should contain the answers from the jupyter notebook.
-        # grading happens here? by comparing the key/vals between
-        # self.answers and rsp.results
+        # rsp should contain the answers from .json file.
+        # by comparing the key/vals between self.answers and rsp.results
+        rsp = sess.send(req.prepare())
         
         # TODO more error handling with better messages.
-        
-        rsp = sess.send(req.prepare())
-        #self.do_grade("todo: json.loads that rsp.result")
+        # self.do_grade("todo: json.loads that rsp.result")
+        self._publish_grade(Score(.7, 1))
         
         #!! TODO remove this, it is overwriting user_id for testing purposes 🐬
         # user_id from edx will be different.
-        fake_user_id = "35dd7e9124c8847ec5-030ef"
-
-        return {"result": rsp.text, "user_id": fake_user_id, "location":anon_id}
+        
+        return {"result": rsp.text, "user_id": anon_id, "location":str(self.answer_path)}
     
     # TO-DO: change this to create the scenarios you'd like to see in the
     # workbench while developing your XBlock.
