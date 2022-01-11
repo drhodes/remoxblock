@@ -39,15 +39,13 @@ function RemoXBlock(runtime, element) {
         $.ajax({
             type: "POST",
             url: handlerLoadHubData,
-            data: JSON.stringify({"hello": "world"}),
+            data: JSON.stringify({}),
             success: updateData,
             error: function(XMLHttpRequest, textStatus, errorThrown) { 
                 unwaitCursor();
-                alert("Status: " + textStatus);
-                alert("Error: " + errorThrown);
+                renderError(`Status: ${textStatus}, Error: ${errorThrown}`);
             }});
     });
-    
     
     $(function ($) {
         /* Here's where you'd do things on page load. */
