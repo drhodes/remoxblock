@@ -6,14 +6,9 @@ remote host and grades it against staff defined answers on the edx
 platform.
 
 
-# Installation.
+# Instructions 
 
-There will be more details soon, but development is
-currently taking place on the docker based
-[devstack](https://github.com/openedx/devstack) install of openedx.
+Github has a handy wiki now, that seems like a good place for instructions
 
-The makefile can deploy the xblock to the the lms and studio
-containers by running
-
-`$ make deploy-local-docker`
-
+[Setting up development](https://github.com/drhodes/remoxblock/wiki/How-to-setup-for-development)
+[Configuring remoxblock in Studio](https://github.com/drhodes/remoxblock/wiki/Staff-workflow-for-configuring-grader-from-Studio)
