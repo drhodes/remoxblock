@@ -49,7 +49,7 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
                          default="",
                          scope=Scope.settings)
 
-    staff_answers = String(display_name="Answers",
+    staff_answers = String(display_name="Staff Answers",
                            help="paste json blob here, todo: better documentation needed",
                            default="", scope=Scope.settings)
     
@@ -90,15 +90,38 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             "max_value": max_grade,
         })
 
-    def check_answer(self, key, val):
+    def check_answer(self, lab_variable_name, lab_variable_value):
+        """
+        Arguments 
+
+        - lab_variable_name (string): identifies which value is being
+          graded. The field: staff_answers (json map) should
+          have a matching key.
+        
+        - lab_variable_value (any): is the value which is being
+          graded. The field: self.staff_answers contains this value
+          keyed by lab_variable_name.
+        
+        
+        Returns 
+
+        - bool: True if lab_variable_value matches what staff has
+        specified as the correct answer in staff_answers.
+        """
+        
         # TODO: work tolerance into this
-
         # TODO, this may throw an exception, need to handle it.
-        normalized_json = self.staff_answers.replace("'", '"')        
-        staff_answers = json.loads(normalized_json)
+        
+        student_answer = lab_variable_value
 
-        student_answer = val
-        staff_answer = staff_answers[key]
+        # TODO consider building magic for staff to emit properly json
+        normalized_json = self.staff_answers.replace("'", '"')
+        
+        staff_answers = json.loads(normalized_json)
+        staff_answer = staff_answers[lab_variable_name]
+        
+        # TODO, this needs to be more robust, probably using parts of
+        # an already establish grader
         return student_answer == staff_answer
 
     def render_answers(self, answers):
@@ -107,8 +130,9 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
 
         rows = []
         for key, val in answers:
-            ans = "✔️" if self.check_answer(key, val) else "✗"
+            ans = "right" if self.check_answer(key, val) else "wrong"
             rows.append(Row(key, val, ans))
+
         return Template(template_html).render(rows=rows)
     
     def text_score(self, answer_pairs):
@@ -119,12 +143,16 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
 
         # TODO use a template for this.
         return f"score {num_right}/{len(answer_pairs)}"
-        
+
+    def check_staff_answers_not_empty(self):
+        pass
+    
     @XBlock.json_handler
-    def load_hub_data(self, data, suffix=''):        
+    def load_hub_data(self, data, suffix=''):
         anon_id = util.generate_jupyterhub_userid(self.runtime.anonymous_student_id)
         url = self.host
         
+        sess = requests.Session()
         req = requests.Request(
             url=url,
             method="POST",
@@ -134,30 +162,38 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             },                           
             auth=(self.consumer, self.secret)
         )
-        
-        sess = requests.Session()
 
-        # rsp should contain the answers from .json file.
-        # by comparing the key/vals between self.answers and rsp.results
-        rsp = sess.send(req.prepare())
-        
-        # TODO more error handling with better messages.
-        # self.do_grade("todo: json.loads that rsp.text")
-        
-        self._publish_grade(Score(.7, 1))
+        try:
+            # rsp should contain the answers from .json file.
+            # by comparing the key/vals between self.answers and rsp.results
+            rsp = sess.send(req.prepare())
 
-        answer_pairs = json.loads(rsp.text).items()
-        html = self.render_answers(answer_pairs)
-        score = self.text_score(answer_pairs)
-        
-        return {
-            "result": rsp.text,
-            "user_id": anon_id,
-            "score": score,
-            "html":html,
-            "ok": True,
-        }
+            # TODO more error handling with better messages.
+            # self.do_grade("todo: json.loads that rsp.text")
+            # self._publish_grade(Score(.7, 1))
 
+            answer_pairs = json.loads(rsp.text).items()
+            # log.error(answer_pairs)
+
+            html = self.render_answers(answer_pairs)
+            score = self.text_score(answer_pairs)
+
+            return {
+                "ok": True,
+                "result": rsp.text,
+                "user_id": anon_id,
+                "score": score,
+                "html":html,
+            }
+        except Exception as err:
+            # maybe it makes sense to drill down further into the
+            # exception, but .. users will be reporting this error, if
+            # it happens, maybe .. a remote log server would be
+            # useful?
+            msg = "Having trouble grading: " + str(err)
+            log.error(msg)            
+            return { "ok": False, "error": msg}
+            
     # ------------------------------------------------------------------
     # implementing ScoreableXBlockMixin, no idea what state is needed
     # nor where.
