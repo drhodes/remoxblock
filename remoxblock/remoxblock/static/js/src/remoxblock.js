@@ -4,32 +4,25 @@ function RemoXBlock(runtime, element) {
 
     var handlerUrl = runtime.handlerUrl(element, 'increment_count');
 
-    function renderAnswers(html) {
-        $('#user-lab-data', element).html(html);
-    }
-
-    function renderError(result) {
-        $('#remoxblock-error', element).text(result);
-    }
+    function waitCursor() { document.body.style.cursor = 'wait'; }
+    function unwaitCursor() { document.body.style.cursor = 'default'; }
     
-    function renderScore(score) {
-        $('#remoxblock-score', element).text(score);
-    }
+    function renderAnswers(html) { $('#user-lab-data', element).html(html); }
+    function renderScore(score) { $('#remoxblock-score', element).text(score); }
+    function renderError(result) { $('#remoxblock-error', element).text(result); }
+    function clearError() { $('#remoxblock-error', element).text(""); }
     
     function updateData(result) {
         console.log(["updating data", result]);
-        // $('#user-id', element).text(result.user_id);        
         if (result.ok) {
             renderAnswers(result.html);
             renderScore(result.score);
+            clearError();
         } else {
-            renderError(result);
+            renderError(result.error);
         }
         unwaitCursor();
     }
-
-    function waitCursor() { document.body.style.cursor = 'wait'; }
-    function unwaitCursor() { document.body.style.cursor = 'default'; }
     
     var handlerLoadHubData = runtime.handlerUrl(element, 'load_hub_data');
     $('#load-hub-data', element).click(function(eventObject) {
