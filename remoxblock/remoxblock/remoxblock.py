@@ -49,17 +49,16 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
                          default="",
                          scope=Scope.settings)
 
-    #todo change this field to staff_answers
-    answers = String(display_name="Answers",
-                     help="paste json blob here, todo: better documentation needed",
-                     default="", scope=Scope.settings)
+    staff_answers = String(display_name="Answers",
+                           help="paste json blob here, todo: better documentation needed",
+                           default="", scope=Scope.settings)
     
     editable_fields = ('display_name',
                        'host',
                        'answer_path',
                        'consumer',
                        'secret',
-                       'answers')
+                       'staff_answers')
     
     def resource_string(self, path):
         """Handy helper for getting resources from our kit."""
@@ -95,13 +94,12 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         # TODO: work tolerance into this
 
         # TODO, this may throw an exception, need to handle it.
-        normalized_json = self.answers.replace("'", '"')        
+        normalized_json = self.staff_answers.replace("'", '"')        
         staff_answers = json.loads(normalized_json)
 
         student_answer = val
         staff_answer = staff_answers[key]
         return student_answer == staff_answer
-
 
     def render_answers(self, answers):
         template_html = self.resource_string("static/html/answers.html")
@@ -112,7 +110,6 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             ans = "✔️" if self.check_answer(key, val) else "✗"
             rows.append(Row(key, val, ans))
         return Template(template_html).render(rows=rows)
-
     
     def text_score(self, answer_pairs):
         num_right = 0        
