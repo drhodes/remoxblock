@@ -91,12 +91,12 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         })
 
     def check_answer(self, lab_variable_name, lab_variable_value):
-        """
-        Arguments 
+        """Arguments 
 
-        - lab_variable_name (string): identifies which value is being
-          graded. The field: staff_answers (json map) should
-          have a matching key.
+        - lab_variable_name (string): student supplied variable name
+          from the lab that identifies which value is being
+          graded. The field: self.staff_answers (json map) should have
+          a key that matches lab_variable_name.
         
         - lab_variable_value (any): is the value which is being
           graded. The field: self.staff_answers contains this value
@@ -107,6 +107,7 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
 
         - bool: True if lab_variable_value matches what staff has
         specified as the correct answer in staff_answers.
+
         """
         
         # TODO: work tolerance into this
