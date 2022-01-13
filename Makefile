@@ -46,8 +46,7 @@ work: ## open all files in editor
 install: ## install the xblock
 	pip install -e $(XBLOCK)
 
-
-kill-extra-containers:
+kill-extra-containers: ## when memory is tight.
 	docker kill edx.devstack.credentials             || true
 	docker kill edx.devstack.discovery               || true
 	docker kill edx.devstack.ecommerce               || true
@@ -58,16 +57,23 @@ kill-extra-containers:
 	docker kill edx.devstack.lms_watcher             || true
 	docker kill edx.devstack.studio_watcher          || true
 
+kill-extra-containers2:
+	docker kill edx.devstack.ecommerce               || true
+	docker kill edx.devstack.elasticsearch710        || true
+	docker kill edx.devstack.forum                   || true
+	docker kill edx.devstack.frontend-app-payment    || true
+
+
 
 # Workbench rules -------------------------------------------------------
 
-run:
+workbench-run:
 	python xblock-sdk/manage.py runserver
 
-migrate:
+workbench-migrate:
 	python xblock-sdk/manage.py migrate
 
-log-workbench:
+workbench-log:
 	tail -f var/workbench.log
 
 
