@@ -1,6 +1,25 @@
 % for row in rows:
 <p>
-  <span> ${row.key} ${row.val} ${row.is_right_answer} </span>
+   
+  <span class="remox-key-box">${row.key}</span>
+
+  % if row.is_right_answer:
+    <span class="remox-answer-box remox-right">
+  % else:
+    <span class="remox-answer-box remox-wrong">
+  % endif  
+    
+  ${row.val}
+  
+  </span>
+
+    
+  % if row.is_right_answer:
+    <span class="remox-green-check"> ✓ </span>    
+  % else: 
+    <span class="remox-red-x"> ✖ </span>    
+  % endif
+
 </p>
 % endfor
 
