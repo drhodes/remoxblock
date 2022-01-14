@@ -154,16 +154,20 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             rows.append(Row(key, val, ans))
             
         return Template(template_html).render(rows=rows)
-    
-    def text_score(self, answer_pairs):
-        num_right = 0
 
+    def num_right(self, answer_pairs):
+        total = 0
         # TODO iterate over staffs_answers here instead.
         for (key, val) in answer_pairs:
             if self.check_answer(key, val):
-                num_right += 1
+                total += 1
+        return total
+    
+    def text_score(self, answer_pairs):
+        total = self.num_right(answer_pairs)
+
         # TODO use a template for this.
-        return f"score {num_right}/{len(answer_pairs)}"
+        return f"score {total}/{len(answer_pairs)}"
 
     def check_staff_answers_not_empty(self):
         pass
@@ -202,15 +206,17 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
 
             html = self.render_answers(answer_pairs)
             score = self.text_score(answer_pairs)
-
+            raw_score = self.num_right(answer_pairs)
+            
             # TODO replace the hard coded 1 here with something real.
 
             # PSST: Cannot rescore unanswered problem:
+            #self._publish_grade(self.calculate_score())
             if self.has_submitted_answer():
-                self.set_score(Score(1, self.max_raw_score()))
+                self.set_score(Score(raw_score, self.max_raw_score()))
                 self.rescore(False)
             else:
-                self.set_score(Score(1, self.max_raw_score()))
+                self.set_score(Score(raw_score, self.max_raw_score()))
             
             return {
                 "ok": True,
@@ -240,24 +246,27 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         return self.learner_score != None
     
     def get_score(self):
-        raise Exception("get_score was called")
+        log.debug("get_score called")
         if self.learner_score:
             return Score(self.learner_score, self.max_raw_score())
         else:
             # TODO THIS IS NOT RIGHT
             # hardcoded 1 here is just for testing purposes.x
-            return Score(1, self.max_raw_score())
+            return Score(0, self.max_raw_score())
     
     def set_score(self, score):
-        #Score = namedtuple('Score', ['raw_earned', 'raw_possible'])
+        log.debug("set_score called")
+        #Score = namedtuple('Score', ['raw_earned', 'raw_possible'])        
         self.learner_score = score.raw_earned
         self.save()
         
     def calculate_score(self):
-        return Score(self.max_raw_score(), self.max_raw_score())
+        log.debug("calculate_score called")
+        #return Score(self.max_raw_score(), self.max_raw_score())
         return Score(self.learner_score, self.max_raw_score())
 
     def publish_grade(self):
+        log.debug("publish_grade called")
         self._publish_grade(self.calculate_score())
     
     ## end of ScorableXBlockMixin
