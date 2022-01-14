@@ -10,5 +10,7 @@ platform.
 
 Github has a handy wiki now, that seems like a good place for instructions
 
-[Setting up development](https://github.com/drhodes/remoxblock/wiki/How-to-setup-for-development)
-[Configuring remoxblock in Studio](https://github.com/drhodes/remoxblock/wiki/Staff-workflow-for-configuring-grader-from-Studio)
+[Setting up development](https://github.com/drhodes/remoxblock/wiki/How-to-setup-for-development)  
+[Configuring remoxblock in Studio](https://github.com/drhodes/remoxblock/wiki/Staff-workflow-for-configuring-grader-from-Studio)  
+[File server for grading Jupyterhub](https://github.com/drhodes/remoxblock/wiki/File-server-for-grading-Jupyterhub)
+
