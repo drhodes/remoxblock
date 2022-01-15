@@ -102,7 +102,7 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         return frag    
 
     def parsed_staff_answers(self):
-        # TODO consider building magic for staff to emit properly json        
+        # TODO consider building magic for staff to emit proper json        
         normalized_json = self.staff_answers.replace("'", '"')
         return json.loads(normalized_json)
 
@@ -173,12 +173,6 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         pass
 
     @XBlock.json_handler
-    def reset_data(self, data, suffix=''):
-        # TODO clear user answers.
-        pass
-
-    
-    @XBlock.json_handler
     def load_hub_data(self, data, suffix=''):
         # TODO DeprecationWarning: runtime.anonymous_student_id is
         # deprecated. Please use the user service instead.
@@ -246,27 +240,21 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         return self.learner_score != None
     
     def get_score(self):
-        log.debug("get_score called")
         if self.learner_score:
             return Score(self.learner_score, self.max_raw_score())
         else:
-            # TODO THIS IS NOT RIGHT
-            # hardcoded 1 here is just for testing purposes.x
             return Score(0, self.max_raw_score())
     
     def set_score(self, score):
-        log.debug("set_score called")
         #Score = namedtuple('Score', ['raw_earned', 'raw_possible'])        
         self.learner_score = score.raw_earned
         self.save()
         
     def calculate_score(self):
-        log.debug("calculate_score called")
         #return Score(self.max_raw_score(), self.max_raw_score())
         return Score(self.learner_score, self.max_raw_score())
 
     def publish_grade(self):
-        log.debug("publish_grade called")
         self._publish_grade(self.calculate_score())
     
     ## end of ScorableXBlockMixin

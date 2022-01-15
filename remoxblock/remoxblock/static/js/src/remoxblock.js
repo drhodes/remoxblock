@@ -1,9 +1,5 @@
 /* Javascript for RemoXBlock. */
 function RemoXBlock(runtime, element) {
-    // const progress = new Progress();
-
-    var handlerUrl = runtime.handlerUrl(element, 'increment_count');
-
     function waitCursor() { document.body.style.cursor = 'wait'; }
     function unwaitCursor() { document.body.style.cursor = 'default'; }
     
@@ -39,24 +35,6 @@ function RemoXBlock(runtime, element) {
             error: function(XMLHttpRequest, textStatus, errorThrown) { 
                 unwaitCursor();
                 renderError(`Status: ${textStatus}, Error: ${errorThrown}`);
-            }});
-    });
-
-
-    var handlerResetData = runtime.handlerUrl(element, 'reset_data');
-    $('#remox-reset', element).click(function(eventObject) {
-        console.log("running LTI request");
-        waitCursor();        
-        $.ajax({
-            type: "POST",
-            url: handlerLoadHubData,
-            data: JSON.stringify({}),
-            success: function() {
-                renderAnswers("");
-                unwaitCursor();
-            },
-            error: function(XMLHttpRequest, textStatus, errorThrown) {
-                unwaitCursor();
             }});
     });
     
