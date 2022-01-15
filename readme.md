@@ -6,11 +6,33 @@ remote host and grades it against staff defined answers on the edx
 platform.
 
 
+# Testing
+
+1) activate a virtualenv
+
+If you don't have a virtualenv, it's easy to set one up.
+
+```bash 
+$ virtualenv venv
+$ source venv/bin/activate
+```
+
+Then install the xblock
+
+$ pip install remoxblock 
+$ make test
+
 # Instructions 
 
-Github has a handy wiki now, that seems like a good place for instructions
+Here are some docs:
 
+For anyone who wants to hack on this project  
 [Setting up development](https://github.com/drhodes/remoxblock/wiki/How-to-setup-for-development)  
+
+For staff who wants to use remoxblock in a course (not ready yet)  
 [Configuring remoxblock in Studio](https://github.com/drhodes/remoxblock/wiki/Staff-workflow-for-configuring-grader-from-Studio)  
+
+
 [File server for grading Jupyterhub](https://github.com/drhodes/remoxblock/wiki/File-server-for-grading-Jupyterhub)
+
 
