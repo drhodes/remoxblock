@@ -20,6 +20,7 @@ from xblock.scorable import ScorableXBlockMixin, Score
 from xblockutils.studio_editable import StudioEditableXBlockMixin
 
 import remoxblock.util as util
+from remoxblock.answer_set import AnswerSet
 
 log = logging.getLogger(__name__)
 _ = lambda t: t
@@ -35,7 +36,10 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
     Grade Remote Json
     """
     learner_score = Float(scope=Scope.user_state)
-
+    
+    # persist student answers so they can be reloaded on page view.
+    student_answers = String(display_name="Student Answers", default="", scope=Scope.user_state)
+    
     weight = Float(
         display_name="Problem Weight",
         help=_(
@@ -46,11 +50,11 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         scope=Scope.settings,
         values={"min": 0},
     )
-    
+
     # the following should not be necessary since it is a field of
     # ScorableXBlockMixin
-    has_score = True 
-
+    has_score = True
+    
     # configuration fields -------------------------------------------------------
     
     consumer = String(display_name="Consumer Id", help="consumer id",
@@ -81,6 +85,20 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
                        'secret',
                        'staff_answers')
 
+    
+    def student_view_revisiting(self):
+        '''
+        if student has already submitted answers, then there should be
+        answers, so render those
+        '''
+        html_answers = AnswerSet(self.student_answers).render(self.parsed_staff_answers())
+        template_html = self.resource_string("static/html/revisit-remoxblock.html")
+        frag = Fragment(Template(template_html).render(answers=html_answers))
+        frag.add_css(self.resource_string("static/css/remoxblock.css"))
+        frag.add_javascript(self.resource_string("static/js/src/remoxblock.js"))
+        frag.initialize_js('RemoXBlock')
+        return frag    
+
     def student_view(self, context=None):
         """
         The primary view of the RemoXBlock, shown to students
@@ -93,24 +111,27 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         # answers
 
         # also store the previous set of answer from the lab.
-        
-        html = self.resource_string("static/html/remoxblock.html")
-        frag = Fragment(html.format(self=self))
-        frag.add_css(self.resource_string("static/css/remoxblock.css"))
-        frag.add_javascript(self.resource_string("static/js/src/remoxblock.js"))
-        frag.initialize_js('RemoXBlock')
-        return frag    
+        if self.student_answers:
+            return self.student_view_revisiting()
+        else:
+            html = self.resource_string("static/html/remoxblock.html")
+            frag = Fragment(html.format(self=self))
+            frag.add_css(self.resource_string("static/css/remoxblock.css"))
+            frag.add_javascript(self.resource_string("static/js/src/remoxblock.js"))
+            frag.initialize_js('RemoXBlock')
+            return frag    
 
     def parsed_staff_answers(self):
-        # TODO consider building magic for staff to emit proper json        
+        # TODO consider building magic for staff to emit proper json
+        
+        # If the json doesn't parse here then it most probably means
+        # that @staff entered bunk json in the studio xblock config
+        # modal, or that it's empty.  staff_answers should not be
+        # empty!
+        
         normalized_json = self.staff_answers.replace("'", '"')
         return json.loads(normalized_json)
 
-    def max_grade(self):
-        return len(self.parsed_staff_answers())
-
-    def max_score(self):
-        return self.weight
     
     def check_answer(self, lab_variable_name, lab_variable_value):
         """Arguments 
@@ -144,16 +165,7 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         return math.isclose(student_answer, staff_answer)
 
     def render_answers(self, answers):
-        template_html = self.resource_string("static/html/answers.html")
-        # TODO rename this and move to util.py
-        Row = namedtuple("Row", ['key', 'val', 'is_right_answer'])
-
-        rows = []
-        for key, val in answers:
-            ans = self.check_answer(key, val) 
-            rows.append(Row(key, val, ans))
-            
-        return Template(template_html).render(rows=rows)
+        return AnswerSet(self.student_answers).render(self.parsed_staff_answers())
 
     def num_right(self, answer_pairs):
         total = 0
@@ -194,23 +206,20 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             # rsp should contain the answers from .json file.
             # by comparing the key/vals between self.answers and rsp.results
             rsp = sess.send(req.prepare())
-
+            
             # TODO more error handling with better messages.
             answer_pairs = json.loads(rsp.text).items()
-
+            
+            self.student_answers = rsp.text
+            self.save() # this isn't strictly necessary since set_score does a state save.
+            
             html = self.render_answers(answer_pairs)
             score = self.text_score(answer_pairs)
             raw_score = self.num_right(answer_pairs)
-            
-            # TODO replace the hard coded 1 here with something real.
-
-            # PSST: Cannot rescore unanswered problem:
-            #self._publish_grade(self.calculate_score())
+                        
+            self.set_score(Score(raw_score, self.max_raw_score()))
             if self.has_submitted_answer():
-                self.set_score(Score(raw_score, self.max_raw_score()))
-                self.rescore(False)
-            else:
-                self.set_score(Score(raw_score, self.max_raw_score()))
+                self.rescore(False) # is this necessary?
             
             return {
                 "ok": True,
@@ -229,6 +238,12 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             log.error(msg)            
             return { "ok": False, "error": msg}
         
+    def max_grade(self):
+        return len(self.parsed_staff_answers())
+
+    def max_score(self):
+        return self.weight
+    
     def max_raw_score(self):
         # this could return zero, which could lead to div by zero.
         return len(self.parsed_staff_answers())
@@ -246,12 +261,10 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
             return Score(0, self.max_raw_score())
     
     def set_score(self, score):
-        #Score = namedtuple('Score', ['raw_earned', 'raw_possible'])        
         self.learner_score = score.raw_earned
         self.save()
         
     def calculate_score(self):
-        #return Score(self.max_raw_score(), self.max_raw_score())
         return Score(self.learner_score, self.max_raw_score())
 
     def publish_grade(self):
