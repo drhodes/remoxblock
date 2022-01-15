@@ -91,9 +91,12 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
         if student has already submitted answers, then there should be
         answers, so render those
         '''
-        html_answers = AnswerSet(self.student_answers).render(self.parsed_staff_answers())
+        staff_set = AnswerSet(self.staff_answers)
+        student_set = AnswerSet(self.student_answers)        
+        html_answers = student_set.render(staff_set)
         template_html = self.resource_string("static/html/revisit-remoxblock.html")
         frag = Fragment(Template(template_html).render(answers=html_answers))
+
         frag.add_css(self.resource_string("static/css/remoxblock.css"))
         frag.add_javascript(self.resource_string("static/js/src/remoxblock.js"))
         frag.initialize_js('RemoXBlock')
