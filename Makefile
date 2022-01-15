@@ -35,7 +35,7 @@ clone-xblock-sdk:
 	git clone "https://github.com/edx/xblock-sdk.git"
 
 test: ## test
-	echo test
+	pytest tests/test_answer_set.py
 
 clean: ## clean all the things
 	echo implement clean makefile rule
