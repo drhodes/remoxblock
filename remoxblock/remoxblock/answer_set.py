@@ -17,14 +17,9 @@ class AnswerSet():
         template_html = util.resource_string("static/html/answers.html")
         rows = []
         
-        # for key, val in staff_answers.items():
-        #     ans = self.val(key) == val
-        #     rows.append(Row(key, val, ans))
-        # rows = []
-        for key, val in staff_set.keyvals():
+        for key, val in self.keyvals():
             ans = self.shares_val(staff_set, key)
             rows.append(Row(key, val, ans))
-            
             
         return Template(template_html).render(rows=rows)
 
@@ -35,6 +30,8 @@ class AnswerSet():
         return self.answers.items()
     
     def num_shared_values(self, other_set):
+        '''tally the number of shared values for every given key'''
+
         total = 0
         for key in self.answers:
             if self.shares_val(other_set, key): #math.isclose(self.val(key), other_set.val(key)):
@@ -42,10 +39,17 @@ class AnswerSet():
         return total
 
     def shares_val(self, other_set: 'AnswerSet', key: str):
-        ''' Arguments
+        '''
+        Predicate: Does self.answers and other_set.answer share the same
+        value associated with key?
 
-        key: a string that keys into answer dictionary
-        '''        
+        Arguments
+
+        key: a string associated with a values
+        '''
+
+        # TODO: what should happen if key is not in one set or the other?
+        # 
         return math.isclose(self.val(key), other_set.val(key))
 
     def val(self, key: str):
