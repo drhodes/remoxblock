@@ -1,22 +1,19 @@
+
 % for row in rows:
-<p>
-  <span class="remox-key-box">${row.key}</span>
-
-  % if row.is_right_answer:
-    <span class="remox-answer-box remox-right">
-  % else:
-    <span class="remox-answer-box remox-wrong">
-  % endif  
-    
-  ${row.val}
-  </span>
-
-    
-  % if row.is_right_answer:
+  <div class="remox-answer-row">
+    <span class="remox-key-box">${row.key}</span>
+  % if row.answer == "CORRECT":
+    <span class="remox-answer-box remox-right"> ${row.val} </span>
     <span class="remox-green-check">✅</span>    
-    % else: 
+  % endif
+      
+  % if row.answer == "WRONG":
+    <span class="remox-answer-box remox-wrong"> ${row.val} </span>
     <span class="remox-red-x"> ✖ </span>    
   % endif
-
-</p>
+ 
+  % if row.answer == "UNSUBMITTED":
+    <span class="remox-answer-box remox-unsubmitted"> no answer yet </span>
+  % endif
+  </div>
 % endfor

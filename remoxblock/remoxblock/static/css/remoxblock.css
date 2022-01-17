@@ -31,6 +31,12 @@
     border: 3px solid green;    
 }
 
+.remox-unsubmitted {
+    border: 3px solid grey;    
+}
+
+
+
 .remox-red-x {
     color: #a31f34;
     font-size: 20px;
@@ -50,4 +56,8 @@
     position: relative;
     top: 3px;
     left: -6px;
+}
+
+.remox-answer-row {
+    padding-top: 35px;
 }

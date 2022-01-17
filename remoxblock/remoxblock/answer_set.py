@@ -6,20 +6,34 @@ from mako.template import Template
 from remoxblock import util
 import pkg_resources
 
-Row = namedtuple("Row", ['key', 'val', 'is_right_answer'])
+Row = namedtuple("Row", ['key', 'val', 'answer'])
 
+CORRECT='CORRECT'
+WRONG='WRONG'
+UNSUBMITTED='UNSUBMITTED'
+
+# TODO consider inheriting from collections.UserDict
 class AnswerSet():
     def __init__(self, json_blob):
-        normalized_json = json_blob.replace("'", '"')
-        self.answers = json.loads(normalized_json)
+        # TODO find a better way to sanitize the json_blob.
+        if json_blob == "":
+            self.answers = {}
+        else:
+            normalized_json = json_blob.replace("'", '"')        
+            self.answers = json.loads(normalized_json)
         
-    def render(self, staff_set):
+    def render(self, student_set: 'AnswerSet'):
+        '''self is the reference set defined by staff_answers...  it should
+        be more obvious that 'self' in this case must be staffs answers.
+        '''
+        
         template_html = util.resource_string("static/html/answers.html")
         rows = []
         
-        for key, val in self.keyvals():
-            ans = self.shares_val(staff_set, key)
-            rows.append(Row(key, val, ans))
+        for key, _ in self.keyvals():
+            result = self.match_val(student_set, key)
+            student_val = student_set.val(key)
+            rows.append(Row(key, student_val, result))
             
         return Template(template_html).render(rows=rows)
 
@@ -29,28 +43,34 @@ class AnswerSet():
     def keyvals(self):
         return self.answers.items()
     
-    def num_shared_values(self, other_set):
+    def has_key(self, key):
+        return key in self.answers
+    
+    def num_shared_values(self, other_set: 'AnswerSet'):
         '''tally the number of shared values for every given key'''
-
         total = 0
         for key in self.answers:
-            if self.shares_val(other_set, key): #math.isclose(self.val(key), other_set.val(key)):
+            if self.match_val(other_set, key) == CORRECT:
                 total += 1
         return total
 
-    def shares_val(self, other_set: 'AnswerSet', key: str):
+    def answers_match(self, other_set: 'AnswerSet', key: str):
+        return math.isclose(self.val(key), other_set.val(key))
+    
+    def match_val(self, other_set: 'AnswerSet', key: str):
         '''
-        Predicate: Does self.answers and other_set.answer share the same
-        value associated with key?
+        Arguments      
 
-        Arguments
-
+        other_set: the other AnswerSet to match against.
         key: a string associated with a values
         '''
-
-        # TODO: what should happen if key is not in one set or the other?
-        # 
-        return math.isclose(self.val(key), other_set.val(key))
+        if self.has_key(key) and other_set.has_key(key):
+            if self.answers_match(other_set, key):
+                return CORRECT
+            else:
+                return WRONG
+        else:
+            return UNSUBMITTED
 
     def val(self, key: str):
-        return self.answers[key]
+        return self.answers.get(key)

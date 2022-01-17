@@ -56,7 +56,6 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
     has_score = True
     
     # configuration fields -------------------------------------------------------
-    
     consumer = String(display_name="Consumer Id", help="consumer id",
                       default="", scope=Scope.settings)
     
@@ -86,104 +85,45 @@ class RemoXBlock(XBlock, StudioEditableXBlockMixin, ScorableXBlockMixin):
                        'staff_answers')
 
     def student_view(self, context=None):
-        """
-        The primary view of the RemoXBlock, shown to students
-        when viewing courses.
-        """
-        if self.student_answers:
-            frag = self.student_view_revisiting()
-        else:
-            frag = self.student_view_no_submission()
-            
+        '''
+        if student has already submitted answers, then there should be
+        answers, so render those
+        '''
+        html_answers = self.render_answers()
+        template_html = self.resource_string("static/html/revisit-remoxblock.html")
+        
+        frag = Fragment(Template(template_html).render(answers=html_answers, ctx=self))
         frag.add_css(self.resource_string("static/css/remoxblock.css"))
         frag.add_javascript(self.resource_string("static/js/src/remoxblock.js"))
         frag.initialize_js('RemoXBlock')
         return frag
 
-    def student_view_no_submission(self):
-        '''
-        if student has not yet submitted answers, then there could be
-        some instructions about how to proceed.
-        '''
-        html = self.resource_string("static/html/remoxblock.html")
-        return Fragment(html.format(self=self))
-
-    def student_view_revisiting(self):
-        '''
-        if student has already submitted answers, then there should be
-        answers, so render those
-        '''
-        staff_set = AnswerSet(self.staff_answers)
-        student_set = AnswerSet(self.student_answers)        
-        html_answers = student_set.render(staff_set)
-        template_html = self.resource_string("static/html/revisit-remoxblock.html")
-        return Fragment(Template(template_html).render(answers=html_answers))
-
     def parsed_staff_answers(self):
-        # TODO consider building magic for staff to emit proper json
-        # If the json doesn't parse here then it most probably means
+        # TODO If the json doesn't parse here then it most probably means
         # that @staff entered bunk json in the studio xblock config
         # modal, or that it's empty.  staff_answers should not be
         # empty!
         normalized_json = self.staff_answers.replace("'", '"')
         return json.loads(normalized_json)
-    
-    def check_answer(self, lab_variable_name, lab_variable_value): 
-        staff_set = AnswerSet(self.staff_answers)
-        student_set = AnswerSet(self.student_answers)        
-        return staff_set.shares_val(student_set, lab_variable_name)
-        """Arguments 
-
-        lab_variable_name (string): 
-
-          student supplied variable name from the lab that identifies
-          which value is being graded. The field: self.staff_answers
-          (json map) should have a key that matches lab_variable_name.
-        
-        lab_variable_value (number): 
-
-          is the value which is being graded. The field:
-          self.staff_answers contains this value keyed by
-          lab_variable_name.
-        
-        Returns 
-
-          bool: True if lab_variable_value matches what staff has
-                specified as the correct answer in staff_answers.
-        """
-        
-        student_answer = lab_variable_value        
-        # TODO, this may throw an exception, need to handle it.
-        staff_answers = self.parsed_staff_answers()        
-        staff_answer = staff_answers[lab_variable_name]
-        
-        # TODO, this needs to be more robust, probably using parts of
-        # an already establish grader
-        # TODO: work tolerance into this
-        return math.isclose(student_answer, staff_answer)
 
     def render_answers(self):
         student_set = AnswerSet(self.student_answers)
         staff_set = AnswerSet(self.staff_answers)
-        return student_set.render(staff_set)
+        return staff_set.render(student_set)
 
+    # TODO remove this method.
     def num_right(self, answer_pairs):
-        total = 0
-        # TODO iterate over staffs_answers here instead.
-        for (key, val) in answer_pairs:
-            if self.check_answer(key, val):
-                total += 1
-        return total
+        student_set = AnswerSet(self.student_answers)
+        staff_set = AnswerSet(self.staff_answers)
+        return student_set.num_shared_values(staff_set)
     
     def text_score(self, answer_pairs):
         total = self.num_right(answer_pairs)
         # TODO use a template for this.
         return f"score {total}/{len(answer_pairs)}"
 
-    def check_staff_answers_not_empty(self):
-        pass
 
-    @XBlock.json_handler
+    @XBlock.json_handler    
     def load_hub_data(self, data, suffix=''):
         # TODO DeprecationWarning: runtime.anonymous_student_id is
         # deprecated. Please use the user service instead.
