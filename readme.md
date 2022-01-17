@@ -22,9 +22,7 @@ Then install the xblock
 $ pip install remoxblock 
 $ make test
 
-# Instructions 
-
-Here are some docs:
+# Docs
 
 For anyone who wants to hack on this project  
 [Setting up development](https://github.com/drhodes/remoxblock/wiki/How-to-setup-for-development)  
