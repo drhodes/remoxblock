@@ -1,5 +1,7 @@
 /* Javascript for RemoXBlock. */
 function RemoXBlock(runtime, element) {
+    function log(msg) { console.log("remox: " + msg); }
+    
     function waitCursor() { document.body.style.cursor = 'wait'; }
     function unwaitCursor() { document.body.style.cursor = 'default'; }
     
@@ -10,7 +12,7 @@ function RemoXBlock(runtime, element) {
     function clearError() { $('#remoxblock-error', element).text(""); }
     
     function updateData(result) {
-        console.log(["updating data", result]);
+        log(["updating data", result]);
         if (result.ok) {
             renderAnswers(result.html);
             renderScore(result.score);
@@ -18,13 +20,14 @@ function RemoXBlock(runtime, element) {
             clearError();
         } else {
             renderError(result.error);
+            log(result.error);
         }
         unwaitCursor();
     }
     
     var handlerLoadHubData = runtime.handlerUrl(element, 'load_hub_data');
     $('#load-hub-data', element).click(function(eventObject) {
-        console.log("running LTI request");
+        log("loading student answers");
         waitCursor();
         
         $.ajax({
@@ -35,6 +38,7 @@ function RemoXBlock(runtime, element) {
             error: function(XMLHttpRequest, textStatus, errorThrown) { 
                 unwaitCursor();
                 renderError(`Status: ${textStatus}, Error: ${errorThrown}`);
+                log(`Status: ${textStatus}, Error: ${errorThrown}`);
             }});
     });
     
