@@ -23,14 +23,15 @@ class AnswerSet():
             self.answers = json.loads(normalized_json)
         
     def render(self, student_set: 'AnswerSet'):
-        '''self is the reference set defined by staff_answers...  it should
-        be more obvious that 'self' in this case must be staffs answers.
         '''
-        
+        self is the reference set defined by staff_answers...  it should
+        be more obvious that 'self' in this case must be the staff
+        AnswerSet.
+        '''        
         template_html = util.resource_string("static/html/answers.html")
         rows = []
         
-        for key, _ in self.keyvals():
+        for key in self.answers:
             result = self.match_val(student_set, key)
             student_val = student_set.val(key)
             rows.append(Row(key, student_val, result))
@@ -39,9 +40,6 @@ class AnswerSet():
 
     def size(self):
         return len(self.answers)
-
-    def keyvals(self):
-        return self.answers.items()
     
     def has_key(self, key):
         return key in self.answers
