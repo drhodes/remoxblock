@@ -8,7 +8,7 @@ LMS=edx.devstack.lms
 
 PIP=/edx/app/edxapp/venvs/edxapp/bin/pip
 
-# This workflow is geared towards the docker devstack
+# This workflow is geared towards the dockerized devstack
 
 default: ## default
 	@echo default make rule invoked.

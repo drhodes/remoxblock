@@ -35,7 +35,9 @@
     border: 3px solid grey;    
 }
 
-
+.remox-score {
+    font-size: 14px; 
+}
 
 .remox-red-x {
     color: #a31f34;
@@ -60,4 +62,15 @@
 
 .remox-answer-row {
     padding-top: 35px;
+}
+
+.remoxblock-error {
+    color: green;
+    font-weight: 900;
+    font-size: 28px;
+    margin-top: 17px;
+    padding-left: 20px;
+    position: relative;
+    top: 3px;
+    left: -6px;
 }

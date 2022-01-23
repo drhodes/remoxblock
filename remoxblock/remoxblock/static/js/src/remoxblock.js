@@ -6,9 +6,14 @@ function RemoXBlock(runtime, element) {
     function unwaitCursor() { document.body.style.cursor = 'default'; }
     
     function renderAnswers(html) { $('#user-lab-data', element).html(html); }
-    function renderScore(score) { $('#remoxblock-score', element).text(score); }
-    function renderError(msg) { $('#remoxblock-error', element).text(msg); }
-    function renderLearnerScore(score) { $('#remoxblock-learner-score', element).text(score); }
+    function renderScore(score) {
+        var txt = `${score} points (graded)`;
+        $('#remoxblock-score', element).text(txt);
+    }
+    function renderError(msg) {
+        var errmsg = `Please forward this error to the community TA on the forum: ${msg}`;
+        $('#remoxblock-error', element).text(errmsg);
+    }
     function clearError() { $('#remoxblock-error', element).text(""); }
     
     function updateData(result) {
@@ -16,7 +21,6 @@ function RemoXBlock(runtime, element) {
         if (result.ok) {
             renderAnswers(result.html);
             renderScore(result.score);
-            renderLearnerScore(result.learner_score);
             clearError();
         } else {
             renderError(result.error);

@@ -1,9 +1,17 @@
-
 <div class="remoxblock_block">
   <p> Answers for <b>${ctx.answer_path}</b></p>
+  % if ctx.learner_score:
+  <div id="remoxblock-score" class="remox-score">
+    ${int(ctx.learner_score)}/${ctx.max_grade()} points (graded)
+  </div>
+  % else:
+  <div id="remoxblock-score" class="remox-score">
+    0/${ctx.max_grade()} points (graded)
+  </div>
+  % endif
+  
   <div id="user-lab-data"> ${answers} </div>
-  <div id="remoxblock-score"></div>
-  <div id="remoxblock-error"></div>
+  <div id="remoxblock-error" class="remoxblock-error"></div>
   <div id="remoxblock-learner-score"></div>
   <br>
   <hr>  

@@ -71,4 +71,7 @@ class AnswerSet():
             return UNSUBMITTED
 
     def val(self, key: str):
+        '''Get the value associated with a key, if the key does not exist
+        then return None
+        '''
         return self.answers.get(key)
