@@ -19,8 +19,8 @@ from xblock.fields import Float, Boolean, String, Scope
 from xblock.scorable import ScorableXBlockMixin, Score
 from xblockutils.studio_editable import StudioEditableXBlockMixin
 
-import remoxblock.util as util
-from remoxblock.answer_set import AnswerSet
+from . import util
+from . import answer_set.AnswerSet
 
 log = logging.getLogger(__name__)
 _ = lambda t: t
