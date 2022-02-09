@@ -9,9 +9,12 @@
 }
 
 .remox-answer-box {
+    /* width: auto; */
+    display: inline-block;
     padding-top: 10px;
     padding-bottom: 10px;
-    padding-right: 325px;
+    /* padding-right: 325px; */
+    min-width: 400px;
     padding-left: 15px;
     border-radius: 3px;
 }
