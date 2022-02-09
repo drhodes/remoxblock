@@ -5,6 +5,8 @@ remoxblock is an xblock that fetches serialized student answers from a
 remote host and grades it against staff defined answers on the edx
 platform.
 
+![image](https://user-images.githubusercontent.com/84929/153287706-0522180d-121f-4056-87af-7f71a5c2f78d.png)
+
 
 # Testing
 
